@@ -236,8 +236,61 @@ button:active {
     padding: 20px;
 }
 </style>
+  <style>
+    /* Khung nền mờ phía sau popup */
+    .overlay {
+      display: none; /* Mặc định ẩn */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    /* Khung nội dung của Popup */
+    .popup-content {
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      position: relative;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Nút dấu X để đóng */
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #aaa;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+  </style>
 </head>
 <body>
+      <!-- Nút bấm để mở Popup -->
+  <button id="open-btn" style="padding: 10px 20px; cursor: pointer;">Mở Popup</button>
+
+  <!-- Cấu trúc ẩn của Popup -->
+  <div id="popup-overlay" class="overlay">
+    <div class="popup-content">
+      <span class="close-btn" id="close-btn">&times;</span>
+      <h2>Thông báo!</h2>
+      <p>Nội dung popup của bạn nằm ở đây.</p>
+    </div>
+  </div>
+
 <script src="./config.js"></script>
 <script src="./main.js"></script>
 <div class="header">
@@ -350,6 +403,30 @@ function xacNhan() {
     message.classList.add("success");
 }
 </script>
+  <script>
+    const openBtn = document.getElementById('open-btn');
+    const closeBtn = document.getElementById('close-btn');
+    const popup = document.getElementById('popup-overlay');
+
+    if (openBtn && closeBtn && popup) {
+      // Mở popup
+      openBtn.addEventListener('click', () => {
+        popup.style.display = 'flex';
+      });
+
+      // Đóng bằng nút X
+      closeBtn.addEventListener('click', () => {
+        popup.style.display = 'none';
+      });
+
+      // Đóng khi bấm ra ngoài vùng đen
+      window.addEventListener('click', (e) => {
+        if (e.target === popup) {
+          popup.style.display = 'none';
+        }
+      });
+    }
+  </script>
 
 </body>
 </html>
