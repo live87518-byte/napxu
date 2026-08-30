@@ -159,15 +159,15 @@
 </head>
 <body>
 
-<div class="card">
+<div class="card" id="card" style="opacity:0.4">
   <span class="eyebrow">Acc dùng chung</span>
-  <h1>Tên dịch vụ</h1>
+  <h1 id="serviceName">Đang tải...</h1>
   <p class="subtitle">Thông tin đăng nhập cho cả nhóm — vui lòng đọc lưu ý bên dưới trước khi dùng.</p>
 
   <div class="field">
     <div class="field-info">
       <div class="label">Email</div>
-      <div class="value" id="email">acc.dungchung@example.com</div>
+      <div class="value" id="email">—</div>
     </div>
     <button class="copy-btn" onclick="copyText('email', this)">Copy</button>
   </div>
@@ -175,7 +175,7 @@
   <div class="field">
     <div class="field-info">
       <div class="label">Mật khẩu</div>
-      <div class="value" id="password">MatKhau123!</div>
+      <div class="value" id="password">—</div>
     </div>
     <button class="copy-btn" onclick="copyText('password', this)">Copy</button>
   </div>
@@ -184,15 +184,46 @@
     <b>Lưu ý:</b> Vui lòng không đổi mật khẩu, không đăng xuất thiết bị khác, và không chia sẻ acc ra ngoài nhóm. Nếu có vấn đề, báo lại người quản lý acc.
   </div>
 
-  <a class="report-btn" href="https://example.com/bao-loi" target="_blank" rel="noopener noreferrer">
+  <a class="report-btn" id="reportBtn" href="#" target="_blank" rel="noopener noreferrer">
     Mật khẩu đã thay đổi? Bấm vào đây
   </a>
 
-  <footer>Cập nhật lần cuối: <span id="date"></span></footer>
+  <footer>Cập nhật lần cuối: <span id="date">—</span></footer>
 </div>
 
 <script>
-  document.getElementById('date').textContent = new Date().toLocaleDateString('vi-VN');
+  const DEFAULTS = {
+    serviceName: "Tên dịch vụ",
+    email: "acc.dungchung@example.com",
+    password: "MatKhau123!",
+    reportLink: "https://example.com/bao-loi",
+    updatedAt: null
+  };
+  const STORAGE_KEY = "shared-account-info";
+
+  async function loadAccountInfo() {
+    let data = DEFAULTS;
+    try {
+      const result = await window.storage.get(STORAGE_KEY, true);
+      if (result && result.value) {
+        data = { ...DEFAULTS, ...JSON.parse(result.value) };
+      }
+    } catch (e) {
+      // Chưa có dữ liệu lưu -> dùng mặc định
+    }
+    render(data);
+  }
+
+  function render(data) {
+    document.getElementById('serviceName').textContent = data.serviceName;
+    document.getElementById('email').textContent = data.email;
+    document.getElementById('password').textContent = data.password;
+    document.getElementById('reportBtn').href = data.reportLink;
+    document.getElementById('date').textContent = data.updatedAt
+      ? new Date(data.updatedAt).toLocaleString('vi-VN')
+      : new Date().toLocaleDateString('vi-VN');
+    document.getElementById('card').style.opacity = '1';
+  }
 
   function copyText(id, btn) {
     const text = document.getElementById(id).textContent;
@@ -206,6 +237,10 @@
       }, 1500);
     });
   }
+
+  loadAccountInfo();
+  // Tự làm mới mỗi 15 giây để bắt kịp thay đổi từ trang admin
+  setInterval(loadAccountInfo, 15000);
 </script>
 
 </body>
