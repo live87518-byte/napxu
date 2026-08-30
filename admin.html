@@ -211,31 +211,27 @@
 
     <div class="field">
       <label class="label">Tên dịch vụ</label>
-      <input type="text" id="serviceName" value="Tên dịch vụ" oninput="updateExport()" />
+      <input type="text" id="serviceName" value="Tên dịch vụ" />
     </div>
 
     <div class="field">
       <label class="label">Email</label>
-      <input type="text" id="emailInput" value="acc.dungchung@example.com" oninput="updateExport()" />
+      <input type="text" id="emailInput" value="acc.dungchung@example.com" />
     </div>
 
     <div class="field">
       <label class="label">Mật khẩu</label>
-      <input type="text" id="passInput" value="MatKhau123!" oninput="updateExport()" />
+      <input type="text" id="passInput" value="MatKhau123!" />
     </div>
 
     <div class="field">
       <label class="label">Link báo lỗi (khi mật khẩu đổi)</label>
-      <input type="text" id="reportLink" value="https://example.com/bao-loi" oninput="updateExport()" />
+      <input type="text" id="reportLink" value="https://example.com/bao-loi" />
     </div>
 
-    <div class="export-box">
-      <label class="label">Giá trị để dán vào share-acc.html</label>
-      <textarea id="exportBox" readonly></textarea>
-      <div class="hint">Copy đoạn trên, mở file share-acc.html, thay các dòng tương ứng (email, mật khẩu, href của nút, tên dịch vụ) rồi lưu lại.</div>
-    </div>
+    <button class="btn" onclick="saveAccountInfo()">Lưu & đồng bộ với trang share-acc</button>
 
-    <div class="save-status" id="saveStatus">Đã cập nhật bản xem trước.</div>
+    <div class="save-status" id="saveStatus">Đã lưu — trang share-acc sẽ cập nhật trong ít phút.</div>
 
     <div class="logout" onclick="logout()">Đăng xuất</div>
   </div>
@@ -246,14 +242,31 @@
   // Mật khẩu admin demo — nên đổi trước khi dùng thật
   const ADMIN_PASSWORD = "admin123";
 
-  function tryLogin() {
+  const STORAGE_KEY = "shared-account-info";
+
+  async function tryLogin() {
     const input = document.getElementById('adminPass').value;
     if (input === ADMIN_PASSWORD) {
       document.getElementById('lockScreen').style.display = 'none';
       document.getElementById('adminCard').style.display = 'block';
-      updateExport();
+      await loadCurrentInfo();
     } else {
       document.getElementById('errorText').style.display = 'block';
+    }
+  }
+
+  async function loadCurrentInfo() {
+    try {
+      const result = await window.storage.get(STORAGE_KEY, true);
+      if (result && result.value) {
+        const data = JSON.parse(result.value);
+        document.getElementById('serviceName').value = data.serviceName || '';
+        document.getElementById('emailInput').value = data.email || '';
+        document.getElementById('passInput').value = data.password || '';
+        document.getElementById('reportLink').value = data.reportLink || '';
+      }
+    } catch (e) {
+      // Chưa có dữ liệu -> giữ giá trị mặc định trong form
     }
   }
 
@@ -264,24 +277,31 @@
     document.getElementById('errorText').style.display = 'none';
   }
 
-  function updateExport() {
-    const service = document.getElementById('serviceName').value;
-    const email = document.getElementById('emailInput').value;
-    const pass = document.getElementById('passInput').value;
-    const link = document.getElementById('reportLink').value;
+  async function saveAccountInfo() {
+    const data = {
+      serviceName: document.getElementById('serviceName').value,
+      email: document.getElementById('emailInput').value,
+      password: document.getElementById('passInput').value,
+      reportLink: document.getElementById('reportLink').value,
+      updatedAt: new Date().toISOString()
+    };
 
-    const output =
-`Tên dịch vụ: ${service}
-Email: ${email}
-Mật khẩu: ${pass}
-Link báo lỗi: ${link}`;
-
-    document.getElementById('exportBox').value = output;
-
-    const status = document.getElementById('saveStatus');
-    status.classList.add('show');
-    clearTimeout(window._t);
-    window._t = setTimeout(() => status.classList.remove('show'), 1200);
+    try {
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(data), true);
+      const status = document.getElementById('saveStatus');
+      if (result) {
+        status.textContent = 'Đã lưu — trang share-acc sẽ cập nhật trong ít phút.';
+      } else {
+        status.textContent = 'Lưu thất bại, thử lại.';
+      }
+      status.classList.add('show');
+      clearTimeout(window._t);
+      window._t = setTimeout(() => status.classList.remove('show'), 2000);
+    } catch (e) {
+      const status = document.getElementById('saveStatus');
+      status.textContent = 'Lỗi khi lưu: ' + e.message;
+      status.classList.add('show');
+    }
   }
 
   document.getElementById('adminPass').addEventListener('keydown', (e) => {
