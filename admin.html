@@ -170,7 +170,7 @@
     padding: 10px;
     font-family: 'Consolas', 'SF Mono', monospace;
     font-size: 12px;
-    height: 90px;
+    height: 130px;
     resize: none;
   }
 
@@ -207,7 +207,7 @@
   <div class="card" id="adminCard">
     <span class="eyebrow">Admin</span>
     <h2>Quản lý acc dùng chung</h2>
-    <p class="subtitle">Chỉnh thông tin bên dưới, sau đó dán lại vào file share-acc.html.</p>
+    <p class="subtitle">Chỉnh thông tin bên dưới, copy đoạn JSON rồi dán vào file <b>data.json</b> trên GitHub và Commit.</p>
 
     <div class="field">
       <label class="label">Tên dịch vụ</label>
@@ -229,9 +229,12 @@
       <input type="text" id="reportLink" value="https://example.com/bao-loi" />
     </div>
 
-    <button class="btn" onclick="saveAccountInfo()">Lưu & đồng bộ với trang share-acc</button>
-
-    <div class="save-status" id="saveStatus">Đã lưu — trang share-acc sẽ cập nhật trong ít phút.</div>
+    <div class="export-box">
+      <label class="label">Nội dung để dán vào data.json</label>
+      <textarea id="exportBox" readonly></textarea>
+      <button class="btn btn-secondary" id="copyExportBtn" onclick="copyExport()" style="margin-top:10px">Copy JSON</button>
+      <div class="hint">Mở file data.json trong repo GitHub → bấm biểu tượng bút chì để sửa → xóa hết nội dung cũ → dán đoạn trên → Commit changes.</div>
+    </div>
 
     <div class="logout" onclick="logout()">Đăng xuất</div>
   </div>
@@ -241,8 +244,6 @@
 <script>
   // Mật khẩu admin demo — nên đổi trước khi dùng thật
   const ADMIN_PASSWORD = "admin123";
-
-  const STORAGE_KEY = "shared-account-info";
 
   async function tryLogin() {
     const input = document.getElementById('adminPass').value;
@@ -257,17 +258,18 @@
 
   async function loadCurrentInfo() {
     try {
-      const result = await window.storage.get(STORAGE_KEY, true);
-      if (result && result.value) {
-        const data = JSON.parse(result.value);
+      const res = await fetch('./data.json?t=' + Date.now());
+      if (res.ok) {
+        const data = await res.json();
         document.getElementById('serviceName').value = data.serviceName || '';
         document.getElementById('emailInput').value = data.email || '';
         document.getElementById('passInput').value = data.password || '';
         document.getElementById('reportLink').value = data.reportLink || '';
       }
     } catch (e) {
-      // Chưa có dữ liệu -> giữ giá trị mặc định trong form
+      // Chưa đọc được data.json -> giữ giá trị mặc định trong form
     }
+    updateExport();
   }
 
   function logout() {
@@ -277,7 +279,7 @@
     document.getElementById('errorText').style.display = 'none';
   }
 
-  async function saveAccountInfo() {
+  function updateExport() {
     const data = {
       serviceName: document.getElementById('serviceName').value,
       email: document.getElementById('emailInput').value,
@@ -285,23 +287,22 @@
       reportLink: document.getElementById('reportLink').value,
       updatedAt: new Date().toISOString()
     };
+    document.getElementById('exportBox').value = JSON.stringify(data, null, 2);
+  }
 
-    try {
-      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(data), true);
-      const status = document.getElementById('saveStatus');
-      if (result) {
-        status.textContent = 'Đã lưu — trang share-acc sẽ cập nhật trong ít phút.';
-      } else {
-        status.textContent = 'Lưu thất bại, thử lại.';
-      }
-      status.classList.add('show');
-      clearTimeout(window._t);
-      window._t = setTimeout(() => status.classList.remove('show'), 2000);
-    } catch (e) {
-      const status = document.getElementById('saveStatus');
-      status.textContent = 'Lỗi khi lưu: ' + e.message;
-      status.classList.add('show');
-    }
+  ['serviceName', 'emailInput', 'passInput', 'reportLink'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateExport);
+  });
+
+  function copyExport() {
+    const box = document.getElementById('exportBox');
+    box.select();
+    navigator.clipboard.writeText(box.value).then(() => {
+      const btn = document.getElementById('copyExportBtn');
+      const original = btn.textContent;
+      btn.textContent = 'Đã copy';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    });
   }
 
   document.getElementById('adminPass').addEventListener('keydown', (e) => {
